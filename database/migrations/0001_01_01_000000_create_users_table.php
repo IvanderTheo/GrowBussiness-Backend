@@ -18,6 +18,7 @@ return new class extends Migration
             $table->timestamp('email_verified_at')->nullable();
             $table->string('password');
             $table->enum('role',['user','admin']);
+            $table->integer('ai_token')->default(50);
             $table->rememberToken();
             $table->timestamp('updated_at');
             $table->timestamp('created_at');

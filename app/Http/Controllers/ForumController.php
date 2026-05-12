@@ -2,7 +2,8 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\ForumComments;
+use App\Models\ForumComment;
+use Exception;
 use Illuminate\Http\Request;
 use App\Models\Forum;
 use App\Models\ForumCategory;
@@ -24,7 +25,7 @@ class ForumController extends Controller
             });
         }
 
-        $forums = $query->latest()->get()->paginate(10);
+        $forums = $query->latest()->paginate(10);
 
         return response()->json([
             'status'=>'sucess',
@@ -37,10 +38,10 @@ class ForumController extends Controller
         $query = Forum::with([
             'user',
             'category',
-            'comments.user'
+            'comments.user',
         ])->findOrFail($id);
 
-        $forums = $query->latest()->get()->paginate(10);
+        $forums = $query->latest()->paginate(10);
 
         return response()->json([
             'status'=>'sucess',
@@ -51,7 +52,7 @@ class ForumController extends Controller
     //store forum
     public function store(Request $request) {
         $validated = $request->validate([
-            'category_id' => ['required', 'exists:categories,id'],
+            'category_id' => ['required', 'exists:forum_categories,id'],
             'title' => ['required', 'string', 'max:255'],
             'content' => ['required', 'string'],
         ]);
@@ -72,22 +73,26 @@ class ForumController extends Controller
     //post comment
     public function storeComment(Request $request, $id)
     {
-        $validated = $request->validate([
-            'comment' => ['required', 'string']
-        ]);
+        try {
+            $request->validate([
+                'comment' => ['required', 'string']
+            ]);
 
-        $forum = Forum::findOrFail($id);
+            $forum = Forum::findOrFail($id);
 
-        $comment = ForumComments::create([
-            'user_id' => auth()->id(),
-            'forum_id' => $forum->id,
-            'comment' => $validated['comment']
-        ]);
+            $comment = ForumComment::create([
+                'user_id' => auth()->id(),
+                'forum_id' => $forum->id,
+                'comment' => $request->comment
+            ]);
 
-        return response()->json([
-            'message' => 'Komentar berhasil ditambahkan',
-            'data' => $comment->load('user')
-        ], 201);
+            return response()->json([
+                'message' => 'Komentar berhasil ditambahkan',
+                'data' => $comment->load('user')
+            ], 201);
+        } catch (Exception $e) {
+            return response()->json([$e->getMessage()]);
+        }
     }
 
 

@@ -13,7 +13,7 @@ return new class extends Migration
     {
         Schema::create('ai_chat_sessions', function (Blueprint $table) {
             $table->id();
-            $table->foreignUuid('user_id')->constrained('users');
+            $table->foreignUuid('user_id')->constrained('users')->cascadeOnDelete();
             $table->string('title');
             $table->timestamps();
         });

@@ -15,15 +15,14 @@ class AuthController extends Controller
             $validated = $request->validate([
                 'name' => 'required|string|max:255',
                 'email' => 'required|email|unique:users',
-                'password' => 'required|string|min:8|confirmed',
-                'role' => 'required|in:instructor,student',
+                'password' => 'required|string|min:8|confirmed'
             ]);
 
             $user = User::create([
                 'name' => $validated['name'],
                 'email' => $validated['email'],
                 'password' => Hash::make($validated['password']),
-                'role' => $validated['role']->default('user')
+                'role' => 'user'
             ]);
 
             $token = $user->createToken('auth_token')->plainTextToken;
@@ -52,7 +51,7 @@ class AuthController extends Controller
                 'password' => 'required|string',
             ]);
 
-            $user = User::where('email', $validated['email'])->first();
+            $user = User::where('email',$validated['email'])->first();
 
             if (!$user || !Hash::check($validated['password'], $user->password)) {
                 return response()->json([

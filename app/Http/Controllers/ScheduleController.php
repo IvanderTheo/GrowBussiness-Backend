@@ -6,17 +6,25 @@ use App\Models\ScheduleDetails;
 use Exception;
 use Illuminate\Http\Request;
 use App\Models\Schedules;
+use Illuminate\Support\Facades\DB;
 
 class ScheduleController extends Controller
 {
     //
     public function index() {
-        $result = Schedules::all()->paginate(10);
-        return response()->json([
-            'status'=>'success',
-            'message'=>'Data retrieved successfully',
-            'data'=>$result
-        ],201);
+        try {
+            $result = Schedules::paginate(10);
+                return response()->json([
+                    'status'=>'success',
+                    'message'=>'Data retrieved successfully',
+                    'data'=>$result
+                ],201);
+        } catch (Exceception $e) {
+            return response()->json([
+                'status'=>'failed',
+                'message'=>$e,
+            ],401);
+        }
     }
     public function show($id) {
         $result = Schedules::with('detail')->findOrFail($id);
@@ -28,7 +36,7 @@ class ScheduleController extends Controller
     }
     public function store(Request $request) {
         try {
-            $validated = $request->validate([
+            $request->validate([
                 'title'=>[
                     'required',
                     function ($attribute, $value, $fail) {
@@ -44,8 +52,28 @@ class ScheduleController extends Controller
                             }
                         }
                     ],
+                'start_datetime'=>'required|date_format:Y-m-d H:i:s',
+                'end_datetime'=>'required|date_format:Y-m-d H:i:s|after:start_datetime',
+                'location'=>'string|nullable',
+                'status'=>'nullable|in:pending,ongoing,completed,cancelled'//enum,
             ]);
-            Schedules::create($validated);
+
+            DB::transaction(function () use($request) {
+                $status = $request->status ?? 'pending';//set auto pending
+
+                Schedules::create([
+                    'user_id'=>$request->user()->id,
+                    'title'=>$request->title,
+                    'description'=>$request->description,
+                    'status'=>$status,
+                    ])
+                    ->detail()->create([
+                        'start_datetime'=>$request->start_datetime,
+                        'end_datetime'=>$request->end_datetime,
+                        'location'=>$request->location,
+                    ]);
+            });
+
             return response()->json([
                 'status'=>'success',
                 'message'=>'Data stored successfully',
@@ -54,20 +82,9 @@ class ScheduleController extends Controller
             return response()->json([
                 'status'=>'failed',
                 'message'=>'store failed',
-                'error'=>$e
+                'error'=>$e->getMessage(),
             ]);
         }
-    }
-    public function storeDetail(Request $request,$id) {
-        $validated = $request->validate([
-            'start_datetime'=>'required|date',
-            'end_datetime'=>'required|date|after:start_datetime',
-            'location'=>'string|nullable',
-            'status'=>'required|in:pending,ongoing,completed,cancelled'//enu,
-        ]);
-        $validated['status'] = $validated['status'] ?? 'pending';//set manual
-        $session  = Schedules::where('id',$id)->firstOrFail();
-        $session->detail()->create($validated);
     }
 
     public function update(Request $request, Schedules $schedule) {

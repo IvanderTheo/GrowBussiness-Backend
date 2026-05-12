@@ -2,34 +2,30 @@
 
 namespace App\Models;
 
-use App\Enums\ScheduleEnums;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 
-class Schedules extends Model
+class Products extends Model
 {
     //
-    protected $table = 'schedules';
+    protected $table = 'products';
     protected $fillable = [
         'user_id',
-        'title',
-        'description',
-        'status'
+        'category_id',
+        'product_name',
     ];
     protected $hidden = [
-        'updated_at',
         'created_at',
+        'updated_at',
     ];
-    
-    protected $casts = [
-        'status'=> ScheduleEnums::class,
-    ];
-    
     public function user() : BelongsTo {
         return $this->belongsTo(User::class,'user_id');
     }
-    public function detail() : HasOne {
-        return $this->hasOne(ScheduleDetails::class,'schedule_id');
+    public function category() : BelongsTo {
+        return $this->belongsTo(ProductCategory::class,'category_id');
+    }
+    public function hppCalculation() : HasOne {
+        return $this->hasOne(HppCalculation::class,'product_id','id');
     }
 }

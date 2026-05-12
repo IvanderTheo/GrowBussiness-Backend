@@ -8,7 +8,8 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 class ScheduleDetails extends Model
 {
     //
-    protected $filleable = [
+    protected $table = 'schedule_details';
+    protected $fillable = [
         'start_datetime',
         'end_datetime',
         'location',
@@ -21,7 +22,6 @@ class ScheduleDetails extends Model
     protected $casts = [
         'start_datetime'=>'datetime',
         'end_datetime'=>'datetime',
-        'status'=>'enum',
         'notification'=>'boolean'
     ];
     public function schedule() : BelongsTo {

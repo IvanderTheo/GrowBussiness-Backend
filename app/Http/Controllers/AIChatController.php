@@ -20,7 +20,11 @@ class AIChatController extends Controller
         ]);
     }
     public function show($id) {
-        $session = AIChatSessions::with('messages')->findOrFail($id);
+        $session = AIChatSessions::with([
+            'messages' => function ($query) { // latest chat
+                $query->latest();
+            }
+        ])->findOrFail($id);
 
         return response()->json([
             'status' => 'success',
@@ -35,13 +39,14 @@ class AIChatController extends Controller
                 'title'=> 'string|max:255',
             ]);
 
-            $validate['user_id'] = auth()->id(); //simpan uuid user
+            $validate['user_id'] = $request->user()->id; //simpan uuid user
 
             AIChatSessions::create($validate);
 
             return response()->json([
                 'status'=>'success',
-                'message'=>'session created'
+                'message'=>'session created',
+                'data'=>$validate
             ]);
         } catch (Exception $e) {
             return response()->json([
@@ -56,7 +61,14 @@ class AIChatController extends Controller
         $session = AIChatSessions::where('id', $id)->firstOrFail();
 
         $request->validate([
-            'message' => 'required|string|max:255'
+            'message'=> [
+                'required',
+                function ($attribute, $value, $fail) {
+                        if (str_word_count($value) > 255) {
+                        $fail("$attribute Maksimal 255 kata");
+                    }
+                }
+            ]
         ]);
         // simpan pesan user
         $userMessage = $session->messages()->create([
@@ -64,21 +76,68 @@ class AIChatController extends Controller
             'message' => $request->message,
         ]);
 
+
+        // create gemini context
+        $messages = AIChatMessages::where('session_id', $session->id)
+        ->oldest()
+        ->take(5)
+        ->get();
+
+        $conversation = [];
+
+        foreach ($messages as $message) {
+            $conversation[] = [
+                'role' => $message->sender,
+                'message' => $message->message
+            ];
+        }
+
+        $conversation[] = [
+            'role' => 'user',
+            'message' => $request->message
+        ];
+
         //generate response
-        $reply = $gemini->generate($request->message);
+        $reply = $gemini->generate($request->user(), $conversation);
 
 
         // simpan pesan AI
         $aiMessage = $session->messages()->create([
-            'sender' => 'assistant',
+            'sender' => 'ai',
             'message' => $reply,
         ]);
 
         return response()->json([
             'session_id' => $session->id,
-            'user_message' => $userMessage,
-            'ai_reply' => $aiMessage,
+            'message'=> [$userMessage,$aiMessage],
         ],201);
+    }
+
+    public function tempChat(Request $request, GeminiService $gemini) {
+        $request->validate([
+            'message'=> [
+                'required',
+                function ($attribute, $value, $fail) {
+                        if (str_word_count($value) > 255) {
+                        $fail("$attribute Maksimal 255 kata");
+                    }
+                }
+            ]
+        ]);
+
+        $reply = $gemini->tempChat($request->user(),$request->message);
+
+        $userMessage = [
+            'sender'=>'user',
+            'message'=>$request->message,
+        ];
+        $aiMessage = [
+            'sender'=>'ai',
+            'message'=>$reply,
+        ];
+        return response()->json([
+            'message'=>[$userMessage,$aiMessage],
+        ]);
     }
 
     public function destroy($id) {

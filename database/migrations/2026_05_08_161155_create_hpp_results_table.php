@@ -13,7 +13,7 @@ return new class extends Migration
     {
         Schema::create('hpp_results', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('calculation_id')->constrained('hpp_calculations');
+            $table->foreignId('calculation_id')->constrained('hpp_calculations')->cascadeOnDelete();
             $table->decimal('variable_cost_per_product');
             $table->decimal('fixed_cost_per_product');
             $table->decimal('total_hpp_per_product');

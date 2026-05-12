@@ -13,9 +13,7 @@ return new class extends Migration
     {
         Schema::create('hpp_calculations', function (Blueprint $table) {
             $table->id();
-            $table->foreignUuid('user_id')->constrained('users');
-            $table->foreignId('category_id')->constrained('product_categories');
-            $table->string('product_name');
+            $table->foreignId('product_id')->constrained('products')->cascadeOnDelete();
             $table->integer('target_production_per_month')->default('1000');
             $table->decimal('total_variable_cost');
             $table->decimal('total_fixed_cost_allocation');

@@ -5,9 +5,10 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
-class ForumComments extends Model
+class ForumComment extends Model
 {
     //
+    protected $table = 'forum_comments';
     protected $fillable = [
         'user_id',
         'forum_id',

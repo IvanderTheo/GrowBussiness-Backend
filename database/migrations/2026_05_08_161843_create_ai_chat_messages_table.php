@@ -16,7 +16,6 @@ return new class extends Migration
             $table->foreignId('session_id')->constrained('ai_chat_sessions')->cascadeOnDelete();
             $table->enum('sender',['user','ai']);
             $table->text('message');
-            $table->integer('token');
             $table->timestamps();
         });
     }

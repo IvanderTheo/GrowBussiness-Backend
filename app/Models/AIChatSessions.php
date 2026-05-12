@@ -9,7 +9,9 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 class AIChatSessions extends Model
 {
     //
+    protected $table = 'ai_chat_sessions';
     protected $fillable = [
+        'user_id',
         'title',
     ];
     protected $hidden = [

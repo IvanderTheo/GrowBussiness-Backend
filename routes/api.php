@@ -3,6 +3,8 @@
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\AIChatController;
 use App\Http\Controllers\ForumController;
+use App\Http\Controllers\HppController;
+use App\Http\Controllers\ProductController;
 use App\Http\Controllers\ScheduleController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
@@ -19,17 +21,17 @@ Route::middleware('auth:sanctum')->group(function() {
     //ai
     Route::get('/ai',[AIChatController::class,'index']);
     Route::get('/ai/{id}',[AIChatController::class,'show']);
-    Route::post('/ai',[AIChatController::class,'new_chat']);
+    Route::post('/ai/',[AIChatController::class,'new_chat']);
     Route::post('/ai/{id}/chat',[AIChatController::class,'chat']);
     Route::delete('/ai/{id}/delete',[AIChatController::class,'destroy']);
+    Route::post('/ai/temp-chat',[AIChatController::class,'tempChat']);
 
     //schedule
     Route::get('/schedule',[ScheduleController::class,'index']);
     Route::get('/schedule/{id}/detail',[ScheduleController::class,'show']);
     Route::post('/schedule',[ScheduleController::class,'store']);
-    Route::post('/schedule/{id}/detail',[ScheduleController::class,'storeDetail']);
     Route::put('/schedule/{id}',[ScheduleController::class,'update']);
-    Route::put('/schedule/{id}/detail/{id}',[ScheduleController::class,'updateDetail']);
+    Route::put('/schedule/{id}/detail',[ScheduleController::class,'updateDetail']);
     Route::delete('/schedule/{id}',[ScheduleController::class,'destroy']);
 
     //forum
@@ -39,4 +41,15 @@ Route::middleware('auth:sanctum')->group(function() {
     Route::post('/forum/{id}/comments',[ForumController::class,'storeComment']);
     Route::get('/forum-categories', [ForumController::class, 'category']);
     Route::post('/forum-categories', [ForumController::class, 'storeCategory']);
+
+    //products modeling
+    Route::get('/product-categories',[ProductController::class,'categories']);
+    Route::get('/product',[ProductController::class,'index']);
+    Route::get('/product/{id}',[ProductController::class,'show']);
+    Route::post('/product-modeling',[ProductController::class,'productModeling'])->name('productModeling');
+    Route::post('/product-fixed-costs',[ProductController::class,'productFixedCost'])->name('productFixedCost');
+
+    //hpp calculator
+    Route::post('/count-hpp',[HppController::class,'countHpp']);
+    Route::post('/count-recommendation',[HppController::class,'recommendation']);
 });
