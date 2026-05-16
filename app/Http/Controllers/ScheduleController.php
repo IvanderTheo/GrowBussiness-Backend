@@ -13,7 +13,7 @@ class ScheduleController extends Controller
     //
     public function index() {
         try {
-            $result = Schedules::paginate(10);
+            $result = Schedules::all();
                 return response()->json([
                     'status'=>'success',
                     'message'=>'Data retrieved successfully',

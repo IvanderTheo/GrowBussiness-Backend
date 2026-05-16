@@ -34,19 +34,18 @@ class ForumController extends Controller
     }
 
     //get specific forum & comment
-    public function show($id) {
-        $query = Forum::with([
+    public function show($id)
+    {
+        $forum = Forum::with([
             'user',
             'category',
             'comments.user',
         ])->findOrFail($id);
 
-        $forums = $query->latest()->paginate(10);
-
         return response()->json([
-            'status'=>'sucess',
-            'data'=>$forums
-        ],201);
+            'status' => 'success',
+            'data' => $forum
+        ]);
     }
 
     //store forum
@@ -99,9 +98,12 @@ class ForumController extends Controller
     //get category
     public function category()
     {
-        return response()->json(
-            ForumCategory::all()
-        );
+        $result = ForumCategory::all();
+        return response()->json([
+            'status'=>"success",
+            'message'=> "Success Retreieved Data",
+            'data'=>$result,
+        ]);
     }
     // store category
     public function storeCategory(Request $request) {

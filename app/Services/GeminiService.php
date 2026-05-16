@@ -14,32 +14,39 @@ class GeminiService
     protected $result;
 
     //helper
-    public function generate(User $user, array $conversation) : String
-    {
+    public function generate(
+        User $user,
+        string $message,
+        array $history = []
+    ): string {
+
         if ($user->ai_token <= 0) {
             throw new Exception('AI token limit exceeded');
         }
 
-        // ambil last user prompt
-        $context = '';
+        $context = "";
 
-        foreach ($conversation as $message) {
-            $context .= strtoupper($message['role']) . ': ';
-            $context .= $message['message'] . "\n";
+        foreach ($history as $chat) {
+
+            $role = strtoupper($chat['role']);
+
+            $text = $chat['message'];
+
+            $context .= "{$role}: {$text}\n";
         }
 
-        //response
-        $this->result = Gemini::generativeModel(
+        $context .= "USER: {$message}";
+
+        $response = Gemini::generativeModel(
             model: GeminiHelper::generateGeminiModel(
                 variation: ModelVariation::FLASH,
-                generation: 2.5 // models/gemini-2.5-flash
+                generation: 2.5
             )
         )->generateContent($context);
 
-        // kurangi token user
         $user->decrement('ai_token');
-        
-        return $this->result->text(); //response
+
+        return $response->text();
     }
 
     // temp chat

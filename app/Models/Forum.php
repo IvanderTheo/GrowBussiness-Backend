@@ -17,7 +17,6 @@ class Forum extends Model
         'content',
     ];
     protected $hidden = [
-        'created_at',
         'updated_at'
     ];
     public function category(): BelongsTo {

@@ -14,6 +14,7 @@ class ForumCategorySeeder extends Seeder
     public function run(): void
     {
         //
+        DB::table('forum_categories')->truncate();
         DB::table('forum_categories')->insert([
             [
                 'name'=>'Technology',
@@ -27,6 +28,18 @@ class ForumCategorySeeder extends Seeder
                 'name'=>'Electronic',
                 'slug'=>'electronic'
             ],
+            [
+                'name'=>'Gadget',
+                'slug'=>'gadget',
+            ],
+            [
+                'name'=>'Business',
+                'slug'=>'business'
+            ],
+            [
+                'name'=>'Game',
+                'slug'=>'game',
+            ]
         ]);
     }
 }

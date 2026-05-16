@@ -12,6 +12,9 @@ use Illuminate\Support\Facades\Route;
 
 Route::post('/register', [AuthController::class,'register']);
 Route::post('/login', [AuthController::class,'login']);
+Route::get('/forum-categories', [ForumController::class, 'category']);
+Route::get('/forum',[ForumController::class,'index']);
+Route::get('/forum/{id}',[ForumController::class,'show']);
 
 Route::middleware('auth:sanctum')->group(function() {
     Route::post('/logout',[AuthController::class,'logout']);
@@ -21,8 +24,7 @@ Route::middleware('auth:sanctum')->group(function() {
     //ai
     Route::get('/ai',[AIChatController::class,'index']);
     Route::get('/ai/{id}',[AIChatController::class,'show']);
-    Route::post('/ai/',[AIChatController::class,'new_chat']);
-    Route::post('/ai/{id}/chat',[AIChatController::class,'chat']);
+    Route::post('/ai/chat', [AIChatController::class, 'chat']);
     Route::delete('/ai/{id}/delete',[AIChatController::class,'destroy']);
     Route::post('/ai/temp-chat',[AIChatController::class,'tempChat']);
 
@@ -35,11 +37,8 @@ Route::middleware('auth:sanctum')->group(function() {
     Route::delete('/schedule/{id}',[ScheduleController::class,'destroy']);
 
     //forum
-    Route::get('/forum',[ForumController::class,'index']);
-    Route::get('/forum/{id}',[ForumController::class,'show']);
     Route::post('/forum',[ForumController::class,'store']);
     Route::post('/forum/{id}/comments',[ForumController::class,'storeComment']);
-    Route::get('/forum-categories', [ForumController::class, 'category']);
     Route::post('/forum-categories', [ForumController::class, 'storeCategory']);
 
     //products modeling

@@ -6,111 +6,102 @@ use Exception;
 use Illuminate\Http\Request;
 use App\Services\GeminiService;
 use App\Models\AIChatSessions;
+use Illuminate\Support\Str;
 use App\Models\AIChatMessages;
 
 class AIChatController extends Controller
 {
     //
-    public function index() {
-        $result = AIChatSessions::latest()->get();
+    public function index(Request $request) {
+        $userId = auth()->id(); //get user id
+        $chats = AIChatSessions::where('user_id', $userId)->get();
         return response()->json([
             'status'=>'success',
             'message'=>'Session retrieved successfully',
-            'data'=>$result,
+            'data'=>$chats,
         ]);
     }
-    public function show($id) {
-        $session = AIChatSessions::with([
-            'messages' => function ($query) { // latest chat
-                $query->latest();
-            }
-        ])->findOrFail($id);
+    public function show($id)
+    {
+        $session = AIChatSessions::findOrFail($id);
+
+        $messages = $session->messages()
+            ->oldest()
+            ->get();
 
         return response()->json([
-            'status' => 'success',
-            'message' => 'Chat retrieved successfully',
-            'data' => $session,
+            'session' => $session,
+            'messages' => $messages
         ]);
     }
 
-    public function new_chat(Request $request) {
-        try {
-            $validate = $request->validate([
-                'title'=> 'string|max:255',
-            ]);
-
-            $validate['user_id'] = $request->user()->id; //simpan uuid user
-
-            AIChatSessions::create($validate);
-
-            return response()->json([
-                'status'=>'success',
-                'message'=>'session created',
-                'data'=>$validate
-            ]);
-        } catch (Exception $e) {
-            return response()->json([
-                'status'=>'failed',
-                'message'=>'store failed',
-                'error'=>$e
-            ]);
-        }
-    }
-    public function chat(Request $request, GeminiService $gemini, $id)
+    public function chat(Request $request, GeminiService $gemini)
     {
-        $session = AIChatSessions::where('id', $id)->firstOrFail();
-
         $request->validate([
-            'message'=> [
-                'required',
-                function ($attribute, $value, $fail) {
-                        if (str_word_count($value) > 255) {
-                        $fail("$attribute Maksimal 255 kata");
-                    }
-                }
-            ]
+            'message' => 'required|string',
+            'session_id' => 'nullable|exists:ai_chat_sessions,id'
         ]);
-        // simpan pesan user
+
+        $session = null;
+
+        // kalau belum ada session
+        if (!$request->session_id) {
+
+            $title = Str::limit($request->message, 40);
+
+            $session = AIChatSessions::create([
+                'user_id' => auth()->id(),
+                'title' => $title,
+            ]);
+        } else {
+            $session = AIChatSessions::findOrFail($request->session_id);
+        }
+
+        // save user message
         $userMessage = $session->messages()->create([
             'sender' => 'user',
             'message' => $request->message,
         ]);
 
-
-        // create gemini context
+        // ambil history
         $messages = AIChatMessages::where('session_id', $session->id)
-        ->oldest()
-        ->take(5)
-        ->get();
+            ->latest()
+            ->take(10)
+            ->get()
+            ->reverse();
 
-        $conversation = [];
+        $history = [];
 
         foreach ($messages as $message) {
-            $conversation[] = [
-                'role' => $message->sender,
-                'message' => $message->message
+
+            $history[] = [
+                'role' => $message->sender === 'ai'
+                    ? 'assistant'
+                    : 'user',
+
+                'message' => (string) $message->message
             ];
         }
 
-        $conversation[] = [
-            'role' => 'user',
-            'message' => $request->message
-        ];
+        $reply = $gemini->generate(
+            auth()->user(),
+            $request->message,
+            $history
+        );
 
-        //generate response
-        $reply = $gemini->generate($request->user(), $conversation);
-
-
-        // simpan pesan AI
+        // save ai response
         $aiMessage = $session->messages()->create([
             'sender' => 'ai',
             'message' => $reply,
         ]);
 
         return response()->json([
-            'session_id' => $session->id,
-            'message'=> [$userMessage,$aiMessage],
-        ],201);
+            'session' => $session,
+            'messages' => [
+                $userMessage,
+                $aiMessage
+            ]
+        ]);
     }
 
     public function tempChat(Request $request, GeminiService $gemini) {
@@ -141,7 +132,14 @@ class AIChatController extends Controller
     }
 
     public function destroy($id) {
-        $session = AIChatSessions::findOrFail($id);
+        $session = AIChatSessions::find($id);
+
+        if (!$session) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Session not found'
+            ], 404);
+        }
 
         // delete semua messages
         $session->messages()->delete();

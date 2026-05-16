@@ -15,7 +15,6 @@ return new class extends Migration
             $table->id();
             $table->foreignId('result_id')->constrained('hpp_results')->cascadeOnDelete();
             $table->enum('category',['competitive','standard','premium']);
-            $table->decimal('selling_price', 15, 2);
 
             // PRICE CALCULATION
 

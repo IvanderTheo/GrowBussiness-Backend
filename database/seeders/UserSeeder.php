@@ -15,10 +15,12 @@ class UserSeeder extends Seeder
     {
         //
         User::create([
-            'name'=>'root',
+            'first_name'=>'root',
+            'last_name'=>'root',
             'email'=>'root@gmail.com',
             'role'=>'admin',
-            'password'=>'root'
+            'password'=>'root',
+            'is_agree_terms'=>true,
         ]);
     }
 }

@@ -23,10 +23,12 @@ class User extends Authenticatable
      */
 
     protected $fillable = [
-        'name',
+        'first_name',
+        'last_name',
         'email',
         'password',
         'role',
+        'is_agree_terms',
     ];
     protected $hidden = [
         'password',
@@ -37,6 +39,7 @@ class User extends Authenticatable
         return [
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
+            'is_agree_terms'=>'boolean',
         ];
     }
     protected function chatbot(): HasMany {
