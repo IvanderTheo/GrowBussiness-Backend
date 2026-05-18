@@ -16,6 +16,7 @@ class DatabaseSeeder extends Seeder
      */
     public function run(): void
     {
+        DB::table('schedules')->truncate();
         DB::table('product_categories')->truncate();
         DB::table('forum_comments')->truncate();
         DB::table('forums')->truncate();
@@ -28,6 +29,7 @@ class DatabaseSeeder extends Seeder
             ProductCategorySeeder::class,
             ForumSeeder::class,
             ForumCommentSeeder::class,
+            ScheduleSeeder::class,
         ]);
     }
 }

@@ -15,6 +15,8 @@ class Schedules extends Model
         'user_id',
         'title',
         'description',
+        'start_datetime',
+        'end_datetime',
         'status'
     ];
     protected $hidden = [
@@ -23,13 +25,12 @@ class Schedules extends Model
     ];
     
     protected $casts = [
+        'start_datetime'=>'datetime',
+        'end_datetime'=>'datetime',
         'status'=> ScheduleEnums::class,
     ];
     
     public function user() : BelongsTo {
         return $this->belongsTo(User::class,'user_id');
-    }
-    public function detail() : HasOne {
-        return $this->hasOne(ScheduleDetails::class,'schedule_id');
     }
 }

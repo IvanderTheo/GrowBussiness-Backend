@@ -30,11 +30,9 @@ Route::middleware('auth:sanctum')->group(function() {
 
     //schedule
     Route::get('/schedule',[ScheduleController::class,'index']);
-    Route::get('/schedule/{id}/detail',[ScheduleController::class,'show']);
     Route::post('/schedule',[ScheduleController::class,'store']);
-    Route::put('/schedule/{id}',[ScheduleController::class,'update']);
-    Route::put('/schedule/{id}/detail',[ScheduleController::class,'updateDetail']);
-    Route::delete('/schedule/{id}',[ScheduleController::class,'destroy']);
+    Route::put('/schedule-update',[ScheduleController::class,'update']);
+    Route::delete('/schedule-delete',[ScheduleController::class,'destroy']);
 
     //forum
     Route::post('/forum',[ForumController::class,'store']);

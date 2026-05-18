@@ -4,10 +4,12 @@ namespace App\Services\HPP;
 
 use League\Csv\Reader;
 
-class ProductFixedCostService {
+class ProductFixedCostService
+{
     public function searchFixedCost(
-        string $category,
-    ) {
+        string $category
+    ): array {
+
         $csv = Reader::from(
             storage_path(
                 'app/hpp_fixed_costs_dummy.csv'
@@ -17,34 +19,64 @@ class ProductFixedCostService {
 
         $csv->setHeaderOffset(0);
 
-        $records = collect($csv->getRecords());
+        $records = collect(
+            $csv->getRecords()
+        );
 
-        $exact = $records->filter(function ($row)
-        use ($category) {
+        $normalizedCategory =
+            $this->normalize($category);
 
-            return $this->normalize($row['category']) === $category;
-        });
+        // EXACT SEARCH
+        $exact = $records
+            ->filter(function ($row)
+            use ($normalizedCategory) {
 
+                return
+                    $this->normalize(
+                        $row['category']
+                    )
+                    ===
+                    $normalizedCategory;
+            });
+
+        // FOUND
         if ($exact->isNotEmpty()) {
+
             return [
+
                 'match_type' => 'exact',
-                'data' => $exact->values()
+
+                'data' =>
+                    $exact
+                    ->values()
+                    ->toArray()
             ];
         }
 
-        // ai fallback
+        // AI FALLBACK
         return [
+
             'match_type' => 'ai_fallback',
-            'data' => collect()
+
+            'data' => []
         ];
     }
 
-    private function normalize(?string $value): string
-    {
-        $value = preg_replace('/^\xEF\xBB\xBF/', '', $value);
+    private function normalize(
+        ?string $value
+    ): string {
+
+        $value =
+            preg_replace(
+                '/^\xEF\xBB\xBF/',
+                '',
+                $value
+            );
 
         return trim(
-            mb_strtolower($value ?? '')
+            mb_strtolower(
+                $value ?? ''
+            )
         );
     }
 }

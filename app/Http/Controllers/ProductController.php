@@ -19,7 +19,12 @@ class ProductController extends Controller
     ) {}
 
     public function categories() {
-        return ProductCategory::all();
+        $result = ProductCategory::all();
+        return response()->json([
+            'status'=>'success',
+            'message'=>'Retrieved data Successfully',
+            'data'=>$result,
+        ]);
     }
     public function index(Request $request) {
         $query = Products::with([
@@ -97,7 +102,7 @@ class ProductController extends Controller
             $result = $this->productFixedCostService
                 ->searchFixedCost($validated['category']);
 
-            if ($result['data']->isEmpty()) {
+            if (empty($result['data'])) {
 
                 return response()->json([
                     'success' => false,

@@ -6,6 +6,7 @@ use App\Models\ScheduleDetails;
 use Exception;
 use Illuminate\Http\Request;
 use App\Models\Schedules;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 
 class ScheduleController extends Controller
@@ -27,7 +28,7 @@ class ScheduleController extends Controller
         }
     }
     public function show($id) {
-        $result = Schedules::with('detail')->findOrFail($id);
+        $result = Schedules::findOrFail($id);
         return response()->json([
             'status'=>'success',
             'message'=>'Data retrieved successfully',
@@ -37,53 +38,57 @@ class ScheduleController extends Controller
     public function store(Request $request) {
         try {
             $request->validate([
-                'title'=>[
+                'title' => [
                     'required',
                     function ($attribute, $value, $fail) {
-                            if (str_word_count($value) > 30) {
-                                $fail("$attribute Maksimal 30 kata");
-                            }
-                        }],
-                'description'=>[
-                        'required',
-                        function ($attribute, $value, $fail) {
-                            if (str_word_count($value) > 255) {
-                                $fail("$attribute Maksimal 255 kata");
-                            }
+                        if (str_word_count($value) > 30) {
+                            $fail("$attribute maksimal 30 kata");
                         }
-                    ],
-                'start_datetime'=>'required|date_format:Y-m-d H:i:s',
-                'end_datetime'=>'required|date_format:Y-m-d H:i:s|after:start_datetime',
-                'location'=>'string|nullable',
-                'status'=>'nullable|in:pending,ongoing,completed,cancelled'//enum,
+                    }
+                ],
+
+                'description' => [
+                    'required',
+                    function ($attribute, $value, $fail) {
+                        if (str_word_count($value) > 255) {
+                            $fail("$attribute maksimal 255 kata");
+                        }
+                    }
+                ],
+
+                'start_datetime' => 'required|date',
+                'end_datetime' => 'nullable|date|after:start_datetime',
+
+                'status' => 'nullable|in:pending,ongoing,completed,cancelled'
             ]);
+            DB::transaction(function () use ($request) {
 
-            DB::transaction(function () use($request) {
-                $status = $request->status ?? 'pending';//set auto pending
+            $status = $request->status ?? 'pending';
 
-                Schedules::create([
-                    'user_id'=>$request->user()->id,
-                    'title'=>$request->title,
-                    'description'=>$request->description,
-                    'status'=>$status,
-                    ])
-                    ->detail()->create([
-                        'start_datetime'=>$request->start_datetime,
-                        'end_datetime'=>$request->end_datetime,
-                        'location'=>$request->location,
-                    ]);
-            });
+            Schedules::create([
+                'user_id' => auth()->id(),
+                'title' => $request->title,
+                'description' => $request->description,
+                'status' => $status,
+
+                'start_datetime' => Carbon::parse($request->start_datetime),
+
+                'end_datetime' => $request->end_datetime
+                    ? Carbon::parse($request->end_datetime)
+                    : null,
+            ]);
+        });
 
             return response()->json([
                 'status'=>'success',
                 'message'=>'Data stored successfully',
-            ]);
+            ],201);
         } catch (Exception $e) {
             return response()->json([
                 'status'=>'failed',
                 'message'=>'store failed',
                 'error'=>$e->getMessage(),
-            ]);
+            ],401);
         }
     }
 
@@ -130,32 +135,21 @@ class ScheduleController extends Controller
     public function updateDetail(
         Request $request,
         Schedules $schedule,
-        ScheduleDetails $detail
     )
     {
         try {
-
-            // keamanan: pastikan detail milik schedule
-            if ($detail->schedule_id !== $schedule->id) {
-                return response()->json([
-                    'status' => 'failed',
-                    'message' => 'Detail does not belong to this schedule'
-                ], 403);
-            }
-
             $validated = $request->validate([
                 'start_datetime' => 'sometimes|date',
                 'end_datetime' => 'sometimes|date|after:start_datetime',
-                'location' => 'nullable|string',
                 'status' => 'nullable|in:cancelled',
             ]);
 
-            $detail->update($validated);
+            $schedule->update($validated);
 
             return response()->json([
                 'status' => 'success',
                 'message' => 'Detail updated successfully',
-                'data' => $detail
+                'data' => $schedule
             ]);
 
         } catch (Exception $e) {

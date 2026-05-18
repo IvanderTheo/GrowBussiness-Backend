@@ -20,8 +20,7 @@ class HppController extends Controller
 
             $fixedCosts = $request->fixed_costs;
 
-            $targetProduction =
-                $request->target_production ?? 1000;
+            $targetProduction = $request->target_production ?? 1000;
 
             $result = $this
                 ->hppCalculation

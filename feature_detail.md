@@ -81,17 +81,20 @@ install csv reader: composer require league/csv
         {
             "category": "Makanan & Minuman",
             "cost_name": "Listrik",
-            "total_monthly_cost": "500000"
+            "total_monthly_cost": "500000",
+            "allocated_cost_per_product": "500"
         },
         {
             "category": "Makanan & Minuman",
             "cost_name": "Gas",
-            "total_monthly_cost": "350000"
+            "total_monthly_cost": "350000",
+            "allocated_cost_per_product": "350"
         },
         {
             "category": "Makanan & Minuman",
             "cost_name": "Gaji Pegawai",
-            "total_monthly_cost": "3000000"
+            "total_monthly_cost": "3000000",
+            "allocated_cost_per_product": "3000"
         }
     ]
 }
