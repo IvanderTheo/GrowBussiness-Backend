@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Enums\ScheduleEnums;
 use App\Models\ScheduleDetails;
 use Exception;
 use Illuminate\Http\Request;
@@ -15,6 +16,20 @@ class ScheduleController extends Controller
     public function index() {
         try {
             $result = Schedules::all();
+
+            foreach($result as $schedule)
+            {
+                if(
+                    $schedule->status !== 'cancelled'
+                    &&
+                    $schedule->status !== $schedule->current_status
+                ){
+                    $schedule->update([
+                        'status'=>$schedule->current_status
+                    ]);
+                }
+            }
+
                 return response()->json([
                     'status'=>'success',
                     'message'=>'Data retrieved successfully',
@@ -26,14 +41,6 @@ class ScheduleController extends Controller
                 'message'=>$e,
             ],401);
         }
-    }
-    public function show($id) {
-        $result = Schedules::findOrFail($id);
-        return response()->json([
-            'status'=>'success',
-            'message'=>'Data retrieved successfully',
-            'data'=>$result,
-        ],201);
     }
     public function store(Request $request) {
         try {
@@ -62,23 +69,20 @@ class ScheduleController extends Controller
                 'status' => 'nullable|in:pending,ongoing,completed,cancelled'
             ]);
             DB::transaction(function () use ($request) {
+                $status = $request->status ?? 'pending';
+                Schedules::create([
+                    'user_id' => auth()->id(),
+                    'title' => $request->title,
+                    'description' => $request->description,
+                    'status' => $status,
 
-            $status = $request->status ?? 'pending';
+                    'start_datetime' => Carbon::parse($request->start_datetime),
 
-            Schedules::create([
-                'user_id' => auth()->id(),
-                'title' => $request->title,
-                'description' => $request->description,
-                'status' => $status,
-
-                'start_datetime' => Carbon::parse($request->start_datetime),
-
-                'end_datetime' => $request->end_datetime
-                    ? Carbon::parse($request->end_datetime)
-                    : null,
-            ]);
-        });
-
+                    'end_datetime' => $request->end_datetime
+                        ? Carbon::parse($request->end_datetime)
+                        : null,
+                ]);
+            });
             return response()->json([
                 'status'=>'success',
                 'message'=>'Data stored successfully',
@@ -92,12 +96,12 @@ class ScheduleController extends Controller
         }
     }
 
-    public function update(Request $request, Schedules $schedule) {
+    public function update(Request $request, $id) {
         try {
-
+            
             $validated = $request->validate([
                 'title' => [
-                    'required',
+                    'sometimes',
                     function ($attribute, $value, $fail) {
                         if (str_word_count($value) > 30) {
                             $fail("$attribute maksimal 30 kata");
@@ -106,23 +110,24 @@ class ScheduleController extends Controller
                 ],
 
                 'description' => [
-                    'required',
+                    'sometimes',
                     function ($attribute, $value, $fail) {
                         if (str_word_count($value) > 255) {
                             $fail("$attribute maksimal 255 kata");
                         }
                     }
                 ],
+                'start_datetime' => 'sometimes|date',
+                'end_datetime' => 'sometimes|date|after:start_datetime',
             ]);
-
-            $schedule->update($validated);
-
+            DB::transaction(function () use ($validated, $id) {
+                $scheduleId = Schedules::find($id);
+                $scheduleId->update($validated);
+            });
             return response()->json([
                 'status' => 'success',
-                'message' => 'Schedule updated successfully',
-                'data' => $schedule
+                'message' => 'Schedule Updated Successfully',
             ]);
-
         } catch (Exception $e) {
 
             return response()->json([
@@ -132,31 +137,25 @@ class ScheduleController extends Controller
             ], 500);
         }
     }
-    public function updateDetail(
-        Request $request,
-        Schedules $schedule,
-    )
-    {
+
+    public function cancel($id) {
         try {
-            $validated = $request->validate([
-                'start_datetime' => 'sometimes|date',
-                'end_datetime' => 'sometimes|date|after:start_datetime',
-                'status' => 'nullable|in:cancelled',
-            ]);
-
-            $schedule->update($validated);
-
+            DB::transaction(function() use ($id) {
+                $scheduleId = Schedules::findOrFail($id);
+                $scheduleId->update([
+                    $scheduleId->update([
+                        'status' => ScheduleEnums::Cancelled
+                    ])
+                ]);
+            });
             return response()->json([
                 'status' => 'success',
-                'message' => 'Detail updated successfully',
-                'data' => $schedule
+                'message' => 'Schedule Cancelled Successfully',
             ]);
-
         } catch (Exception $e) {
-
             return response()->json([
                 'status' => 'failed',
-                'message' => 'Update detail failed',
+                'message' => 'Cancel failed',
                 'error' => $e->getMessage()
             ], 500);
         }
@@ -164,16 +163,15 @@ class ScheduleController extends Controller
     public function destroy($id)
     {
         try {
-
-            $schedule = Schedules::findOrFail($id);
-
-            $schedule->detail()->delete();
+            DB::transaction(function() use ($id) {
+                $schedule = Schedules::findOrFail($id);
+                $schedule->delete();
+            });
             
             return response()->json([
                 'status' => 'success',
                 'message' => 'Schedule deleted successfully'
             ]);
-
         } catch (Exception $e) {
 
             return response()->json([

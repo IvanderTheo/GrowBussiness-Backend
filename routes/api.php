@@ -31,8 +31,9 @@ Route::middleware('auth:sanctum')->group(function() {
     //schedule
     Route::get('/schedule',[ScheduleController::class,'index']);
     Route::post('/schedule',[ScheduleController::class,'store']);
-    Route::put('/schedule-update',[ScheduleController::class,'update']);
-    Route::delete('/schedule-delete',[ScheduleController::class,'destroy']);
+    Route::put('/schedule/{id}',[ScheduleController::class,'update']);
+    Route::patch('/schedule/{id}/cancel',[ScheduleController::class,'cancel']);
+    Route::delete('/schedule/{id}/delete',[ScheduleController::class,'destroy']);
 
     //forum
     Route::post('/forum',[ForumController::class,'store']);

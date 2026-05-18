@@ -7,6 +7,7 @@ use Exception;
 use Illuminate\Http\Request;
 use App\Models\Forum;
 use App\Models\ForumCategory;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 
 class ForumController extends Controller
@@ -39,7 +40,10 @@ class ForumController extends Controller
         $forum = Forum::with([
             'user',
             'category',
-            'comments.user',
+            'comments' => function ($query) {
+                $query->orderBy('created_at', 'desc');
+            },
+            'comments.user'
         ])->findOrFail($id);
 
         return response()->json([
@@ -50,23 +54,31 @@ class ForumController extends Controller
 
     //store forum
     public function store(Request $request) {
-        $validated = $request->validate([
-            'category_id' => ['required', 'exists:forum_categories,id'],
-            'title' => ['required', 'string', 'max:255'],
-            'content' => ['required', 'string'],
-        ]);
+        try {
+            $validated = $request->validate([
+                'category_id' => ['required', 'exists:forum_categories,id'],
+                'title' => ['required', 'string', 'max:255'],
+                'content' => ['required', 'string'],
+            ]);
+            DB::transaction(function () use($validated) {
+                Forum::create([
+                'user_id' => auth()->id(),
+                'category_id' => $validated['category_id'],
+                'title' => $validated['title'],
+                'content' => $validated['content'],
+                ]);
+            });
 
-        $forum = Forum::create([
-            'user_id' => auth()->id(),
-            'category_id' => $validated['category_id'],
-            'title' => $validated['title'],
-            'content' => $validated['content'],
-        ]);
-
-        return response()->json([
-            'message' => 'Forum berhasil dibuat',
-            'data' => $forum->load('category', 'user')
-        ]);
+            return response()->json([
+                'status'=>'success',
+                'message' => 'Forum berhasil dibuat'
+            ]);
+        } catch (Exception $e) {
+            return response()->json([
+                'status'=>'failed',
+                'message' => $e->getMessage()
+            ],500);
+        }
     }
 
     //post comment
@@ -76,18 +88,18 @@ class ForumController extends Controller
             $request->validate([
                 'comment' => ['required', 'string']
             ]);
+            DB::transaction(function() use ($request, $id) {
+                $forum = Forum::findOrFail($id);
 
-            $forum = Forum::findOrFail($id);
-
-            $comment = ForumComment::create([
-                'user_id' => auth()->id(),
-                'forum_id' => $forum->id,
-                'comment' => $request->comment
-            ]);
+                ForumComment::create([
+                    'user_id' => auth()->id(),
+                    'forum_id' => $forum->id,
+                    'comment' => $request->comment
+                ]);
+            });
 
             return response()->json([
-                'message' => 'Komentar berhasil ditambahkan',
-                'data' => $comment->load('user')
+                'message' => 'Komentar berhasil ditambahkan'
             ], 201);
         } catch (Exception $e) {
             return response()->json([$e->getMessage()]);

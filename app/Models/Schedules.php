@@ -29,8 +29,37 @@ class Schedules extends Model
         'end_datetime'=>'datetime',
         'status'=> ScheduleEnums::class,
     ];
+    protected $appends = [
+        'current_status'
+    ];
     
     public function user() : BelongsTo {
         return $this->belongsTo(User::class,'user_id');
+    }
+
+    //update status
+    public function getCurrentStatusAttribute()
+    {
+        $now = now();
+
+        // status manual khusus
+        if ($this->status === ScheduleEnums::Cancelled) {
+            return ScheduleEnums::Cancelled->value;
+        }
+
+        // belum mulai
+        if ($now->lt($this->start_datetime)) {
+            return ScheduleEnums::Pending->value;
+        }
+
+        // jika ada end_datetime dan sudah lewat
+        if (
+            $this->end_datetime &&
+            $now->gt($this->end_datetime)
+        ) {
+            return ScheduleEnums::Completed->value;
+        }
+
+        return ScheduleEnums::Ongoing->value;
     }
 }
