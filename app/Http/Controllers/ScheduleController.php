@@ -68,9 +68,10 @@ class ScheduleController extends Controller
 
                 'status' => 'nullable|in:pending,ongoing,completed,cancelled'
             ]);
-            DB::transaction(function () use ($request) {
+            $schedule = null;
+            DB::transaction(function () use ($request, &$schedule) {
                 $status = $request->status ?? 'pending';
-                Schedules::create([
+                $schedule = Schedules::create([
                     'user_id' => auth()->id(),
                     'title' => $request->title,
                     'description' => $request->description,
@@ -86,6 +87,7 @@ class ScheduleController extends Controller
             return response()->json([
                 'status'=>'success',
                 'message'=>'Data stored successfully',
+                'data'=>$schedule,
             ],201);
         } catch (Exception $e) {
             return response()->json([
@@ -120,13 +122,15 @@ class ScheduleController extends Controller
                 'start_datetime' => 'sometimes|date',
                 'end_datetime' => 'sometimes|date|after:start_datetime',
             ]);
-            DB::transaction(function () use ($validated, $id) {
-                $scheduleId = Schedules::find($id);
-                $scheduleId->update($validated);
+            $schedule = null;
+            DB::transaction(function () use ($validated, $id, &$schedule) {
+                $schedule = Schedules::findOrFail($id);
+                $schedule->update($validated);
             });
             return response()->json([
                 'status' => 'success',
                 'message' => 'Schedule Updated Successfully',
+                'data' => $schedule,
             ]);
         } catch (Exception $e) {
 

@@ -60,18 +60,20 @@ class ForumController extends Controller
                 'title' => ['required', 'string', 'max:255'],
                 'content' => ['required', 'string'],
             ]);
-            DB::transaction(function () use($validated) {
-                Forum::create([
-                'user_id' => auth()->id(),
-                'category_id' => $validated['category_id'],
-                'title' => $validated['title'],
-                'content' => $validated['content'],
+            $forum = null;
+            DB::transaction(function () use($validated, &$forum) {
+                $forum = Forum::create([
+                    'user_id' => auth()->id(),
+                    'category_id' => $validated['category_id'],
+                    'title' => $validated['title'],
+                    'content' => $validated['content'],
                 ]);
             });
 
             return response()->json([
                 'status'=>'success',
-                'message' => 'Forum berhasil dibuat'
+                'message' => 'Forum berhasil dibuat',
+                'data' => $forum->load(['user', 'category'])
             ]);
         } catch (Exception $e) {
             return response()->json([
@@ -88,10 +90,11 @@ class ForumController extends Controller
             $request->validate([
                 'comment' => ['required', 'string']
             ]);
-            DB::transaction(function() use ($request, $id) {
+            $comment = null;
+            DB::transaction(function() use ($request, $id, &$comment) {
                 $forum = Forum::findOrFail($id);
 
-                ForumComment::create([
+                $comment = ForumComment::create([
                     'user_id' => auth()->id(),
                     'forum_id' => $forum->id,
                     'comment' => $request->comment
@@ -99,7 +102,8 @@ class ForumController extends Controller
             });
 
             return response()->json([
-                'message' => 'Komentar berhasil ditambahkan'
+                'message' => 'Komentar berhasil ditambahkan',
+                'data' => $comment->load('user')
             ], 201);
         } catch (Exception $e) {
             return response()->json([$e->getMessage()]);
